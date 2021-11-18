@@ -6,30 +6,36 @@ class PasswordBruteForce {
         // this.maxLength = maxLength;
     }
 
-    get newCharIterator() {
+    newCharIterator() {
         return CharactersIterators.merger(...this.iterators);
     }
 
     *getPassword (len) {
-        let ite = this.newCharIterator;
+        let ite = this.newCharIterator();
         let current;
         if (len == 1) {
-            do {
-                current = ite.next().value;
+            while(true) {
+                current = ite.next();
+                if (current.done) break;
                 yield current.value;
-            } while (!current.done);
+            }
         }
         else {
-            let sub = this.getPassword(len - 1);
+            let sub;
             let subCurrent;
-            do {
-                current = ite.next().value;
-                do {
+            while(true) {
+                current = ite.next();
+
+                if (current.done) break;
+                
+                sub = this.getPassword(len - 1);
+                
+                while (true) {
                     subCurrent = sub.next();
-                    console.log(subCurrent, sub);
-                    yield subCurrent.value + current.value;
-                } while (!subCurrent.done);
-            } while (!current.done);
+                    if (subCurrent.done) break;
+                    yield current.value + subCurrent.value;
+                }
+            }
         }
         return;
     }
@@ -39,7 +45,6 @@ class CharactersIterators {
     static *merger(...iterators) {
         let ite, current;
         for (let i = 0; i < iterators.length; i++) {
-            console.log(iterators[i]);
             ite = iterators[i]();
             while(true) {
                 current = ite.next();
@@ -49,7 +54,11 @@ class CharactersIterators {
         }
     }
 
-    static *symbolIterator(symbols) {
+    static symbolIterator(symbols) {
+        return () => {return CharactersIterators._symbolIterator(symbols)};
+    }
+
+    static *_symbolIterator(symbols) {
         for (let i = 0; i < symbols.length; i++) {
             yield symbols[i];
         }
@@ -79,7 +88,13 @@ class CharactersIterators {
             if (c.done) break;
             yield c.value;
         }
-    } 
+    }
+
+    static *numberIterator() {
+        for (let i = 0; i < 10; i++) {
+            yield i;
+        }
+    }
 }
 
 // var ite = CharactersIterators.merger(CharactersIterators.lowerLetterIterator, CharactersIterators.upperLetterIterator);
@@ -93,13 +108,19 @@ class CharactersIterators {
 
 let passwordCracker = new PasswordBruteForce(
     CharactersIterators.upperLetterIterator,
+    CharactersIterators.numberIterator,
     CharactersIterators.symbolIterator(["_"])
 );
 
-let ite = passwordCracker.getPassword(3);
+let ite = passwordCracker.getPassword(5);
 let current;
+const step = 100000;
+let c = 0;
 while(true) {
     current = ite.next();
     if (current.done) break;
-    console.log(current.value);
+    if (c++ == step) {
+        c = 0;
+        console.log(current.value);
+    }
 }
